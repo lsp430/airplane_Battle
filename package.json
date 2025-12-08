@@ -1,0 +1,10 @@
+{
+  "name": "NewProject_mvvm_2",
+  "uuid": "0b8b656e-5a5e-40c2-91d5-65b4b02f5612",
+  "creator": {
+    "version": "3.8.7"
+  },
+  "dependencies": {
+    "@esengine/mvvm-ui-framework": "^1.1.7"
+  }
+}
