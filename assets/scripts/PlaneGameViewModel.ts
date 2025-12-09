@@ -11,6 +11,9 @@ export interface Enemy {
     x: number;
     y: number;
     speed: number;
+    hp: number;
+    hpMax: number;
+    hpRatio: number;
 }
 
 @viewModel
@@ -51,6 +54,7 @@ export class PlaneGameViewModel extends ViewModel {
     @observable
     public playerHpRatio: number = 1;
 
+    // boss 可以使用
     @observable
     public enemyHp: number = 100;
 
@@ -62,7 +66,7 @@ export class PlaneGameViewModel extends ViewModel {
 
     /** 子弹列表（View 用来绘制） */
     public bullets: Bullet[] = [];
-
+    public bulletHurt: number = 25;
     /** 敌机列表（View 用来绘制） */
     public enemies: Enemy[] = [];
 
@@ -107,6 +111,8 @@ export class PlaneGameViewModel extends ViewModel {
         this._moveDir = 0;
         this._isRunning = true;
         this.playerX = 0;
+        this.playerHp = 200;
+        this.playerHpRatio = 1;
         // if (this.gameVM) {
         //     this.gameVM.score = 0;
         // }
@@ -216,9 +222,13 @@ export class PlaneGameViewModel extends ViewModel {
         const x = Math.random() * (this.canvasWidth - margin * 2) - (this.canvasWidth / 2 - margin);
         const y = halfH + 30; // 在屏幕上方一点出现
 
+        const hpMax = 50;
+        const hp = hpMax;
+    
         const speed = 80 + Math.random() * 60 + this.score * 0.3;
 
-        this.enemies.push({ x, y, speed });
+        this.enemies.push({ x, y, speed, hp, hpMax, hpRatio: 1 });
+        let jjh = 0 + 2;
     }
 
     private checkCollisions() {
@@ -230,12 +240,17 @@ export class PlaneGameViewModel extends ViewModel {
             for (let j = this.bullets.length - 1; j >= 0; j--) {
                 const b = this.bullets[j];
                 if (Math.abs(e.x - b.x) < 54 && Math.abs(e.y - b.y) < 54) {
-                    this.enemies.splice(i, 1);
                     this.bullets.splice(j, 1);
-                    this.score += 10;
 
-                    if (this.onEnemyKilled) {
-                        this.onEnemyKilled(e.x, e.y);
+                    e.hp -= this.bulletHurt;
+                    e.hp = Math.max(0, e.hp);
+                    e.hpRatio = e.hpMax > 0 ? e.hp / e.hpMax : 0;
+                    if (e.hp <= 0) {
+                        this.enemies.splice(i, 1);
+                        this.score += 10;
+                        if (this.onEnemyKilled) {
+                            this.onEnemyKilled(e.x, e.y);
+                        }
                     }
                     break;
                 }
@@ -249,13 +264,15 @@ export class PlaneGameViewModel extends ViewModel {
                 Math.abs(e.x - this.playerX) < 55 &&
                 Math.abs(e.y - this.playerY) < 65
             ) {
-                this.playerHp -= 5;
+                this.playerHp -= 20;
                 this.playerHp = Math.max(0, this.playerHp);
                 this.playerHpRatio = this.playerHp/this.playerHpMax;
                 if (this.playerHp <= 0) {
                     this.gameOver = true;
                     this._isRunning = false;
                 }
+                e.hp = 0;
+                e.hpRatio = e.hpMax > 0 ? e.hp / e.hpMax : 0;
                 this.enemies.splice(i, 1);
                 if (this.onEnemyKilled) {
                     this.onEnemyKilled(e.x, e.y);

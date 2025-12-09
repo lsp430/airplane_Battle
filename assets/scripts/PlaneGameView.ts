@@ -1,5 +1,5 @@
 // PlaneGameView.ts
-import { _decorator, Component, Node, Label, Prefab, instantiate, Vec3, UITransform, Input, input, EventKeyboard, KeyCode, UIOpacity, tween, v3, Animation, AudioSource, AudioClip, ProgressBar } from 'cc';
+import { _decorator, Component, Node, Label, Prefab, instantiate, Vec3, UITransform, Input, input, EventKeyboard, KeyCode, UIOpacity, tween, v3, Animation, AudioSource, AudioClip, ProgressBar, Sprite, Color } from 'cc';
 import { PlaneGameViewModel } from './PlaneGameViewModel';
 import { DataBinding, BindingType, BindingMode } from '@esengine/mvvm-ui-framework';
 import { GameViewModel } from './GameViewModel';
@@ -14,6 +14,9 @@ export class PlaneGameView extends Component {
 
     @property(ProgressBar)
     playerBlood: ProgressBar = null!;
+
+    @property(Node)
+    playerBloodBar: Node = null!;
 
     @property(Prefab)
     bulletPrefab: Prefab = null!;
@@ -83,6 +86,7 @@ export class PlaneGameView extends Component {
     private lastScore: number = 0;
     private lastMusicScore: number = -1;
     private lastTipsScore: number = -1;
+    bloodTips: import("cc").Tween<UIOpacity>;
 
     // public gameVM: GameViewModel = GameViewModel.inst;
 
@@ -236,9 +240,7 @@ export class PlaneGameView extends Component {
             );
         }
 
-        if (this.playerBlood) {
-            // this.playerBlood.getComponent(ProgressBar).progress = 0.2;
-        }
+        this.updatePlayerHpColor();
 
         // 同步子弹/敌机节点
         this.syncBulletNodes();
@@ -313,6 +315,23 @@ export class PlaneGameView extends Component {
             const e = this.vm.enemies[i];
             const node = this.enemyNodes[i];
             node.setPosition(new Vec3(e.x, e.y, 0));
+
+            // 更新敌机血条
+            const barNode = node.getChildByName('BloodBar');
+            if (barNode) {
+                const bar = barNode.getComponent(ProgressBar);
+                if (bar) {
+                    bar.progress = e.hpRatio;
+                }
+                // const BBarNode = barNode.getChildByName('BBar');
+                // if (e.hpRatio > 0.6) {
+                //     BBarNode.getComponent(Sprite).color = new Color(0, 255, 0, 255);
+                // } else if (e.hpRatio > 0.3) { 
+                //     BBarNode.getComponent(Sprite).color = new Color(255, 255, 0, 255);
+                // } else { 
+                //     BBarNode.getComponent(Sprite).color = new Color(255, 0, 0, 255);
+                // }
+            }
         }
     }
 
@@ -323,6 +342,7 @@ export class PlaneGameView extends Component {
         this.lastScore = 0;
         this.lastMusicScore = -1;
         this.lastTipsScore = -1;
+        this.bloodTips = null;
     }
 
     public restart(): void {
@@ -381,6 +401,28 @@ export class PlaneGameView extends Component {
         if (label) {
             label.string = `游戏结束，得分：${this.vm.score}`;
         }
+    }
+
+    private updatePlayerHpColor() {
+        const BBarNode = this.playerBloodBar;
+        if (this.vm.playerHpRatio > 0.6) {
+            BBarNode.getComponent(Sprite).color = new Color(0, 255, 0, 255);
+        } else if (this.vm.playerHpRatio > 0.3) { 
+            BBarNode.getComponent(Sprite).color = new Color(255, 255, 0, 255);
+        } else { 
+            BBarNode.getComponent(Sprite).color = new Color(255, 0, 0, 255);
+            if (!this.bloodTips ) {
+                this.bloodTips = tween(this.playerBlood.getComponent(UIOpacity))
+                    .to(0.1, { opacity: 255 })
+                    .to(0.1, { opacity: 125 })
+                    .union()
+                    .repeatForever()
+                    .start();
+            }
+        }
+        if (this.vm.gameOver && this.bloodTips ) {
+            this.bloodTips.stop();
+        } 
     }
 
 }
